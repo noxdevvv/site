@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src https://*.supabase.co wss://*.supabase.co; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta name="referrer" content="no-referrer">
+<title>Painel de Vendas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;700&family=Hanken+Grotesk:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#eef1f5; --surface:#ffffff; --ink:#101828; --muted:#5b667a; --line:#d9dfe8;
+  --accent:#1d4ed8; --accent-ink:#ffffff; --good:#0b8a5d; --bad:#c93a45;
+  --font-display:"Bricolage Grotesque","Segoe UI",Arial,sans-serif;
+  --font-body:"Hanken Grotesk","Segoe UI",Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#0d121b; --surface:#151c28; --ink:#e8edf5; --muted:#93a0b6; --line:#263143; --accent:#6b9bff; --accent-ink:#0d121b; --good:#3fcf9a; --bad:#ff7a84;}
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:16px;line-height:1.5}
+h1,h2,h3{font-family:var(--font-display);margin:0;letter-spacing:-.01em}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.hidden{display:none!important}
+
+/* Login */
+.auth{min-height:100vh;display:grid;grid-template-columns:1.1fr 1fr}
+.auth-side{background:var(--accent);color:var(--accent-ink);padding:56px;display:flex;flex-direction:column;justify-content:space-between}
+.auth-side h1{font-size:clamp(2rem,4vw,3.4rem);line-height:1.05;max-width:12ch}
+.auth-side p{max-width:36ch;opacity:.9}
+.auth-form-wrap{display:flex;align-items:center;justify-content:center;padding:32px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:28px}
+.auth-card{width:100%;max-width:400px}
+.auth-card h2{font-size:1.5rem;margin-bottom:4px}
+.auth-card .sub{color:var(--muted);margin:0 0 20px}
+label{display:block;font-weight:600;font-size:.9rem;margin:14px 0 6px}
+input,select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 18px;border-radius:8px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);font-weight:600;cursor:pointer}
+.btn:disabled{opacity:.6;cursor:wait}
+.btn.ghost{background:transparent;color:var(--ink);border-color:var(--line)}
+.btn.full{width:100%;margin-top:20px}
+.link{background:none;border:0;color:var(--accent);cursor:pointer;padding:0;font-weight:600}
+.msg{margin-top:14px;font-size:.92rem;padding:10px 12px;border-radius:8px}
+.msg.err{background:color-mix(in srgb,var(--bad) 14%,transparent);color:var(--bad)}
+.msg.ok{background:color-mix(in srgb,var(--good) 14%,transparent);color:var(--good)}
+.setup{max-width:560px;margin:10vh auto;padding:0 20px}
+.setup code{background:var(--bg);padding:2px 6px;border-radius:4px}
+
+/* App */
+header.top{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:16px clamp(16px,4vw,40px);background:var(--surface);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+.brand{font-family:var(--font-display);font-weight:700;font-size:1.2rem}
+.who{display:flex;align-items:center;gap:14px;color:var(--muted);font-size:.9rem}
+.live{display:inline-flex;align-items:center;gap:6px;font-size:.85rem;color:var(--muted)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--muted)}
+.live.on .dot{background:var(--good);box-shadow:0 0 0 4px color-mix(in srgb,var(--good) 25%,transparent)}
+main{max-width:1180px;margin:0 auto;padding:28px clamp(16px,4vw,40px) 60px}
+.bar{display:flex;flex-wrap:wrap;gap:12px;justify-content:space-between;align-items:center;margin-bottom:20px}
+.bar h2{font-size:1.7rem}
+.bar .tools{display:flex;gap:10px;flex-wrap:wrap}
+.bar select{width:auto}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px;margin-bottom:18px}
+.kpi .v{font-family:var(--font-display);font-size:1.9rem;font-weight:700;margin-top:4px}
+.kpi .l{color:var(--muted);font-size:.9rem}
+.grid{display:grid;grid-template-columns:2fr 1fr;gap:14px;margin-bottom:18px}
+.card h3{font-size:1.05rem;margin-bottom:14px}
+.chart-box{position:relative;height:280px}
+.form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:0 12px}
+.form-grid .span{grid-column:1/-1}
+.table-wrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:.95rem}
+th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+th{color:var(--muted);font-weight:600;font-size:.85rem}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.empty{padding:28px;text-align:center;color:var(--muted)}
+.del{background:none;border:0;color:var(--bad);cursor:pointer;font-weight:600}
+@media (max-width:860px){
+  .auth{grid-template-columns:1fr}
+  .auth-side{padding:28px;min-height:200px}
+  .grid{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+
+/* ===== Tema Sasuke + painel de ajustes ===== */
+#auth,#app,#setup{position:relative;z-index:1}
+#fx-bg{position:fixed;inset:-30px;z-index:0;background-size:cover;background-position:center;filter:blur(var(--blur,0px))}
+#fx-veil{position:fixed;inset:0;z-index:0;background:rgba(5,3,12,var(--veil,.55))}
+#fx-canvas{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.brand{display:flex;align-items:center;gap:10px}
+.sh{display:none;flex:none;animation:spin var(--sh-dur,12s) linear infinite;filter:drop-shadow(0 0 8px rgba(255,40,60,.65))}
+.sh.sm{width:30px;height:30px}
+.sh.lg{width:150px;height:150px;margin-top:28px}
+body.sasuke .sh{display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+header.top{padding-top:var(--hdr-pad,16px);padding-bottom:var(--hdr-pad,16px);background:color-mix(in srgb,var(--surface) calc(var(--hdr-op,100) * 1%),transparent)}
+
+body.sasuke{--bg:#07060d;--surface:rgba(18,14,32,.78);--ink:#ece8f7;--muted:#a79fc4;--line:rgba(139,108,255,.3);--accent:#8b6cff;--accent-ink:#0a0714;--good:#4be0a8;--bad:#ff5a69}
+body.sasuke #fx-bg{background-image:radial-gradient(60% 50% at 80% 10%,rgba(120,60,255,.55),transparent 70%),radial-gradient(50% 45% at 10% 90%,rgba(190,20,50,.5),transparent 70%),linear-gradient(160deg,#0a0716,#05040b)}
+body.sasuke .card,body.sasuke header.top{backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px)}
+body.sasuke .card{box-shadow:0 8px 30px rgba(0,0,0,.4),0 0 0 1px rgba(139,108,255,.08) inset}
+body.sasuke h2{text-shadow:0 0 18px rgba(139,108,255,.55)}
+body.sasuke .btn{box-shadow:0 0 16px rgba(139,108,255,.4)}
+body.sasuke .btn.ghost{box-shadow:none}
+body.sasuke input,body.sasuke select{background:rgba(255,255,255,.06)}
+body.sasuke .auth-side{background:linear-gradient(160deg,rgba(70,25,140,.88),rgba(130,12,35,.78));color:#fff}
+
+.banner{position:relative;height:var(--ban-h,180px);border-radius:12px;overflow:hidden;margin-bottom:18px;border:1px solid var(--line)}
+.banner img{width:100%;height:100%;object-fit:cover;object-position:center var(--ban-y,50%);display:block}
+.banner::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 50%,rgba(5,3,12,.6))}
+body.sasuke .banner{box-shadow:0 0 28px rgba(139,108,255,.35);animation:pulse 4s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 40px rgba(255,50,70,.35)}}
+
+.goal{margin-bottom:18px}
+.goal-head{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:baseline}
+.goal-head h3{margin:0}
+.goal-head span{color:var(--muted);font-size:.92rem}
+.goal-track{height:var(--goal-h,18px);border-radius:999px;margin:12px 0 8px;background:color-mix(in srgb,var(--ink) 12%,transparent);overflow:hidden}
+.goal-fill{height:100%;width:0;border-radius:inherit;position:relative;overflow:hidden;background:linear-gradient(90deg,var(--accent),#4fa3ff);transition:width .9s cubic-bezier(.2,.8,.2,1)}
+body.sasuke .goal-fill{box-shadow:0 0 16px #6aa8ff}
+body.sasuke .goal-fill::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(100deg,transparent 0 10px,rgba(255,255,255,.65) 11px 12px,transparent 13px 26px);animation:crackle .45s steps(3) infinite}
+@keyframes crackle{to{background-position:26px 0}}
+.goal-foot{display:flex;justify-content:space-between;font-size:.9rem;color:var(--muted)}
+
+.fab{position:fixed;right:18px;bottom:18px;z-index:40;display:flex;align-items:center;gap:8px;padding:10px 16px 10px 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-weight:600;cursor:pointer;box-shadow:0 6px 24px rgba(0,0,0,.3)}
+.fab svg{width:24px;height:24px}
+#panel{position:fixed;top:0;right:0;bottom:0;width:min(360px,100vw);z-index:60;background:var(--surface);border-left:1px solid var(--line);padding:20px;overflow-y:auto;transform:translateX(105%);transition:transform .3s ease;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+#panel.open{transform:none}
+#panel header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+#panel h3{font-size:1.2rem}
+#panel fieldset{border:0;border-top:1px solid var(--line);margin:16px 0 0;padding:14px 0 0}
+#panel legend{font-family:var(--font-display);font-weight:700;padding:0 8px 0 0}
+.ctl{display:block;margin:12px 0 0;font-weight:500;font-size:.9rem}
+.ctl .row{display:flex;justify-content:space-between;color:var(--muted);margin-bottom:4px}
+.ctl input[type=range]{padding:0;height:28px;background:none;border:0;accent-color:var(--accent)}
+.sw{display:flex;align-items:center;gap:10px;margin-top:12px;font-weight:600}
+.sw input{width:20px;height:20px;accent-color:var(--accent)}
+.filebtn{display:flex;gap:8px;margin-top:10px}
+.filebtn .btn{flex:1;padding:9px 10px;font-size:.9rem}
+.tip{font-size:.82rem;color:var(--muted);margin:8px 0 0}
+</style>
+</head>
+<body>
+
+<div id="fx-bg" class="hidden"></div>
+<div id="fx-veil" class="hidden"></div>
+<canvas id="fx-canvas" class="hidden" aria-hidden="true"></canvas>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<symbol id="sharingan" viewBox="0 0 100 100">
+<circle cx="50" cy="50" r="48" fill="#c4162a"/>
+<circle cx="50" cy="50" r="47" fill="none" stroke="#2a0309" stroke-width="2"/>
+<circle cx="50" cy="50" r="33" fill="none" stroke="#1a0206" stroke-width="2.2"/>
+<g fill="#16020a">
+<g id="tomoe"><circle cx="50" cy="22" r="7.5"/><path d="M43 24c-4 8 1 15 10 15-5-3-6-8-3-13z"/></g>
+<use href="#tomoe" transform="rotate(120 50 50)"/>
+<use href="#tomoe" transform="rotate(240 50 50)"/>
+<circle cx="50" cy="50" r="8"/>
+</g>
+</symbol></defs></svg>
+
+<!-- Aviso de configuração -->
+<section id="setup" class="setup hidden">
+  <div class="card">
+    <h2>Falta conectar o banco de dados</h2>
+    <p>Abra o arquivo <code>index.html</code>, procure por <code>SUPABASE_URL</code> e <code>SUPABASE_ANON_KEY</code> e cole os dados do seu projeto Supabase. O passo a passo está no <code>README.md</code>.</p>
+  </div>
+</section>
+
+<!-- Login -->
+<section id="auth" class="auth hidden">
+  <div class="auth-side">
+    <div class="brand"><svg class="sh sm" viewBox="0 0 100 100" aria-hidden="true"><use href="#sharingan"/></svg>Painel de Vendas</div>
+    <div>
+      <h1>Suas vendas, ao vivo.</h1>
+      <p>Cada venda registrada aparece na hora, em qualquer aparelho em que você estiver conectado.</p>
+      <svg class="sh lg" viewBox="0 0 100 100" aria-hidden="true"><use href="#sharingan"/></svg>
+    </div>
+    <div style="opacity:.8;font-size:.9rem">Acesso restrito a usuários cadastrados.</div>
+  </div>
+  <div class="auth-form-wrap">
+    <div class="card auth-card">
+      <h2 id="auth-title">Entrar</h2>
+      <p class="sub" id="auth-sub">Use seu e-mail e senha.</p>
+      <div>
+        <label for="email">E-mail</label>
+        <input id="email" type="email" autocomplete="email" placeholder="voce@empresa.com">
+        <label for="senha">Senha</label>
+        <input id="senha" type="password" autocomplete="current-password" placeholder="10+ caracteres, maiúscula, minúscula e número">
+        <button id="auth-btn" class="btn full">Entrar</button>
+        <div id="auth-msg" class="msg hidden" role="alert"></div>
+      </div>
+      <p style="margin:18px 0 0;font-size:.92rem;color:var(--muted)">
+        <span id="auth-toggle-text">Ainda não tem conta?</span>
+        <button id="auth-toggle" class="link">Criar conta</button>
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- App -->
+<section id="app" class="hidden">
+  <header class="top">
+    <div class="brand"><svg class="sh sm" viewBox="0 0 100 100" aria-hidden="true"><use href="#sharingan"/></svg>Painel de Vendas</div>
+    <div class="who">
+      <span id="live" class="live"><span class="dot"></span><span id="live-text">Conectando…</span></span>
+      <span id="user-email"></span>
+      <button id="logout" class="btn ghost">Sair</button>
+    </div>
+  </header>
+  <main>
+
+    <div id="banner" class="banner hidden"><img id="banner-img" alt=""></div>
+    <div class="bar">
+      <h2>Visão geral</h2>
+      <div class="tools">
+        <select id="periodo" aria-label="Período">
+          <option value="7">Últimos 7 dias</option>
+          <option value="30" selected>Últimos 30 dias</option>
+          <option value="90">Últimos 90 dias</option>
+          <option value="0">Todo o período</option>
+        </select>
+        <button id="export" class="btn ghost">Exportar CSV</button>
+      </div>
+    </div>
+
+    <div class="kpis">
+      <div class="card kpi"><div class="l">Faturamento</div><div class="v" id="k-total">–</div></div>
+      <div class="card kpi"><div class="l">Vendas</div><div class="v" id="k-qtd">–</div></div>
+      <div class="card kpi"><div class="l">Ticket médio</div><div class="v" id="k-ticket">–</div></div>
+      <div class="card kpi"><div class="l">Vendido hoje</div><div class="v" id="k-hoje">–</div></div>
+    </div>
+
+
+    <div class="card goal">
+      <div class="goal-head"><h3>Barra de chakra: meta do mês</h3><span id="goal-txt"></span></div>
+      <div class="goal-track"><div class="goal-fill" id="goal-fill"></div></div>
+      <div class="goal-foot"><span id="goal-pct">–</span><button id="goal-edit" class="link">Ajustar meta</button></div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <h3>Faturamento por dia</h3>
+        <div class="chart-box"><canvas id="chart" aria-label="Gráfico de faturamento por dia" role="img"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Registrar venda</h3>
+        <div class="form-grid">
+          <div class="span"><label for="f-cliente">Cliente</label><input id="f-cliente" placeholder="Nome do cliente"></div>
+          <div class="span"><label for="f-produto">Produto</label><input id="f-produto" placeholder="Nome do produto"></div>
+          <div><label for="f-qtd">Quantidade</label><input id="f-qtd" type="number" min="1" step="1" value="1"></div>
+          <div><label for="f-preco">Preço unitário (R$)</label><input id="f-preco" type="number" min="0" step="0.01" placeholder="0,00"></div>
+        </div>
+        <button id="f-add" class="btn full">Salvar venda</button>
+        <div id="f-msg" class="msg hidden" role="alert"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>Últimas vendas</h3>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Data</th><th>Cliente</th><th>Produto</th><th class="num">Qtd</th><th class="num">Unitário</th><th class="num">Total</th><th></th></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table>
+        <div id="empty" class="empty hidden">Nenhuma venda neste período. Registre a primeira ao lado.</div>
+      </div>
+    </div>
+  </main>
+</section>
+
+
+<button id="fab" class="fab" aria-controls="panel" aria-expanded="false"><svg viewBox="0 0 100 100" aria-hidden="true"><use href="#sharingan"/></svg>Personalizar</button>
+<aside id="panel" aria-label="Personalizar tema">
+  <header><h3>Personalizar</h3><button id="p-close" class="btn ghost" style="padding:6px 12px">Fechar</button></header>
+  <label class="sw"><input type="checkbox" data-k="theme"> Tema Sasuke</label>
+  <label class="sw"><input type="checkbox" data-k="anim"> Animações ligadas</label>
+
+  <fieldset><legend>Fundo</legend>
+    <div class="filebtn"><label class="btn" style="cursor:pointer">Escolher imagem<input id="bg-file" type="file" accept="image/*" hidden></label><button id="bg-rem" class="btn ghost">Remover</button></div>
+    <label class="ctl"><span class="row">Escurecimento <output data-o="veil"></output></span><input type="range" data-k="veil" min="0" max="90" data-u="%"></label>
+    <label class="ctl"><span class="row">Desfoque <output data-o="blur"></output></span><input type="range" data-k="blur" min="0" max="20" data-u="px"></label>
+  </fieldset>
+
+  <fieldset><legend>Imagem de banner</legend>
+    <div class="filebtn"><label class="btn" style="cursor:pointer">Escolher imagem<input id="ban-file" type="file" accept="image/*" hidden></label><button id="ban-rem" class="btn ghost">Remover</button></div>
+    <label class="ctl"><span class="row">Altura <output data-o="banH"></output></span><input type="range" data-k="banH" min="0" max="360" data-u="px"></label>
+    <label class="ctl"><span class="row">Posição vertical <output data-o="banY"></output></span><input type="range" data-k="banY" min="0" max="100" data-u="%"></label>
+    <p class="tip" id="img-msg">As imagens ficam salvas só neste navegador.</p>
+  </fieldset>
+
+  <fieldset><legend>Barra superior</legend>
+    <label class="ctl"><span class="row">Altura <output data-o="hdrPad"></output></span><input type="range" data-k="hdrPad" min="6" max="32" data-u="px"></label>
+    <label class="ctl"><span class="row">Opacidade <output data-o="hdrOp"></output></span><input type="range" data-k="hdrOp" min="20" max="100" data-u="%"></label>
+  </fieldset>
+
+  <fieldset><legend>Barra de chakra (meta)</legend>
+    <label class="ctl"><span class="row">Meta do mês (R$)</span><input id="meta-in" type="number" min="0" step="100" data-k="meta" placeholder="Ex.: 20000"></label>
+    <label class="ctl"><span class="row">Espessura <output data-o="goalH"></output></span><input type="range" data-k="goalH" min="8" max="40" data-u="px"></label>
+  </fieldset>
+
+  <fieldset><legend>Animações</legend>
+    <label class="ctl"><span class="row">Fogo e faíscas <output data-o="embers"></output></span><input type="range" data-k="embers" min="0" max="100"></label>
+    <label class="ctl"><span class="row">Raios (Chidori) <output data-o="bolts"></output></span><input type="range" data-k="bolts" min="0" max="100"></label>
+    <label class="ctl"><span class="row">Giro do Sharingan <output data-o="spin"></output></span><input type="range" data-k="spin" min="0" max="100"></label>
+  </fieldset>
+
+  <button id="p-reset" class="btn ghost full">Restaurar padrões</button>
+</aside>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
+
+<script>
+/* ===== Tema Sasuke: ajustes, animações e imagens ===== */
+(function () {
+  const KEY = "pv_tema_v1";
+  const DEF = { theme: true, anim: true, veil: 55, blur: 0, embers: 55, bolts: 45, spin: 60, banH: 180, banY: 50, hdrPad: 16, hdrOp: 85, goalH: 18, meta: 0 };
+  let cfg = Object.assign({}, DEF), bg = null, ban = null, mesAtual = 0, raf = 0;
+  try { Object.assign(cfg, JSON.parse(localStorage.getItem(KEY) || "{}")); bg = localStorage.getItem("pv_bg"); ban = localStorage.getItem("pv_banner"); } catch (e) {}
+  const $ = id => document.getElementById(id);
+  const brl = n => Number(n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const reduced = matchMedia("(prefers-reduced-motion: reduce)");
+  const salvar = () => { try { localStorage.setItem(KEY, JSON.stringify(cfg)); } catch (e) {} };
+
+  /* ---- Aplicar ajustes ---- */
+  function aplicar() {
+    const s = document.documentElement.style;
+    document.body.classList.toggle("sasuke", cfg.theme);
+    s.setProperty("--veil", (cfg.veil / 100).toFixed(2));
+    s.setProperty("--blur", cfg.blur + "px");
+    s.setProperty("--ban-h", cfg.banH + "px");
+    s.setProperty("--ban-y", cfg.banY + "%");
+    s.setProperty("--hdr-pad", cfg.hdrPad + "px");
+    s.setProperty("--hdr-op", cfg.hdrOp);
+    s.setProperty("--goal-h", cfg.goalH + "px");
+    s.setProperty("--sh-dur", (24 - cfg.spin * 0.22).toFixed(1) + "s");
+    const fb = $("fx-bg");
+    fb.style.backgroundImage = bg ? 'url("' + bg + '")' : "";
+    const mostra = cfg.theme || !!bg;
+    fb.classList.toggle("hidden", !mostra);
+    $("fx-veil").classList.toggle("hidden", !mostra);
+    if (ban) $("banner-img").src = ban;
+    $("banner").classList.toggle("hidden", !ban || cfg.banH < 10);
+    pintaMeta();
+    fx();
+  }
+
+  /* ---- Barra de chakra (meta do mês) ---- */
+  function pintaMeta() {
+    const fill = $("goal-fill");
+    if (!(cfg.meta > 0)) {
+      fill.style.width = "0%";
+      $("goal-txt").textContent = brl(mesAtual) + " vendidos no mês";
+      $("goal-pct").textContent = "Defina uma meta para acompanhar";
+      return;
+    }
+    const pct = mesAtual / cfg.meta * 100;
+    fill.style.width = Math.min(pct, 100) + "%";
+    $("goal-txt").textContent = brl(mesAtual) + " de " + brl(cfg.meta);
+    $("goal-pct").textContent = Math.round(pct) + "%" + (pct >= 100 ? " · meta batida!" : "");
+  }
+  window.atualizaMeta = v => { mesAtual = v; pintaMeta(); };
+
+  /* ---- Animações (fogo, faíscas e raios) ---- */
+  const cv = $("fx-canvas"), cx = cv.getContext("2d");
+  let W = 0, H = 0, parts = [], bolts = [], nextBolt = 0;
+  function resize() {
+    const d = Math.min(devicePixelRatio || 1, 2);
+    W = innerWidth; H = innerHeight;
+    cv.width = W * d; cv.height = H * d; cx.setTransform(d, 0, 0, d, 0, 0);
+  }
+  function brasa() {
+    parts.push({ x: Math.random() * W, y: H + 10, vx: (Math.random() - .5) * .5, vy: -(.4 + Math.random() * 1.3),
+      r: .8 + Math.random() * 2.2, life: 0, max: 180 + Math.random() * 200,
+      h: Math.random() < .7 ? 8 + Math.random() * 25 : 265 + Math.random() * 25 });
+  }
+  function raio() {
+    const x0 = W * (.1 + Math.random() * .8), x1 = x0 + (Math.random() - .5) * W * .3, y1 = H * (.35 + Math.random() * .45), n = 14, pts = [[x0, 0]], br = [];
+    for (let i = 1; i <= n; i++) { const t = i / n; pts.push([x0 + (x1 - x0) * t + (i < n ? (Math.random() - .5) * 60 : 0), y1 * t]); }
+    for (let k = 0; k < 2; k++) {
+      const i = 3 + Math.floor(Math.random() * 8), b = pts[i], dir = Math.random() < .5 ? -1 : 1, bp = [[b[0], b[1]]];
+      for (let j = 1; j <= 6; j++) bp.push([b[0] + dir * j * 18 + (Math.random() - .5) * 30, b[1] + j * 22 + (Math.random() - .5) * 14]);
+      br.push(bp);
+    }
+    bolts.push({ pts, br, life: 0, max: 16 });
+  }
+  function traco(pts, w, cor, glow) {
+    cx.beginPath(); pts.forEach((p, i) => i ? cx.lineTo(p[0], p[1]) : cx.moveTo(p[0], p[1]));
+    cx.lineWidth = w; cx.strokeStyle = cor; cx.shadowBlur = glow; cx.shadowColor = "#6aa8ff"; cx.lineJoin = "round"; cx.stroke();
+  }
+  function frame(t) {
+    raf = requestAnimationFrame(frame);
+    cx.clearRect(0, 0, W, H);
+    const alvo = cfg.embers * 1.4;
+    if (parts.length < alvo && Math.random() < .6) brasa();
+    cx.globalCompositeOperation = "lighter"; cx.shadowBlur = 0;
+    parts = parts.filter(p => p.life < p.max && p.y > -20);
+    parts.forEach(p => {
+      p.life++; p.x += p.vx + Math.sin(p.life / 25) * .3; p.y += p.vy;
+      const a = Math.sin(Math.PI * p.life / p.max) * .9;
+      cx.fillStyle = "hsla(" + p.h + ",100%,60%," + a.toFixed(2) + ")";
+      cx.beginPath(); cx.arc(p.x, p.y, p.r, 0, 6.283); cx.fill();
+      cx.fillStyle = "hsla(" + p.h + ",100%,55%," + (a * .18).toFixed(2) + ")";
+      cx.beginPath(); cx.arc(p.x, p.y, p.r * 4, 0, 6.283); cx.fill();
+    });
+    cx.globalCompositeOperation = "source-over";
+    if (cfg.bolts > 0 && t > nextBolt) { raio(); nextBolt = t + (8000 - cfg.bolts * 70) * (.5 + Math.random()); }
+    bolts = bolts.filter(b => b.life < b.max);
+    bolts.forEach(b => {
+      let a = 1 - b.life / b.max; if (b.life % 3 === 1) a *= .5;
+      if (b.life < 4) { cx.shadowBlur = 0; cx.fillStyle = "rgba(150,170,255," + (.1 * a).toFixed(3) + ")"; cx.fillRect(0, 0, W, H); }
+      traco(b.pts, 6, "rgba(110,160,255," + (a * .6).toFixed(2) + ")", 26);
+      b.br.forEach(p => traco(p, 3, "rgba(110,160,255," + (a * .5).toFixed(2) + ")", 16));
+      traco(b.pts, 2, "rgba(255,255,255," + a.toFixed(2) + ")", 0);
+      b.life++;
+    });
+    cx.shadowBlur = 0;
+  }
+  function fx() {
+    const quer = cfg.theme && cfg.anim;
+    cv.classList.toggle("hidden", !quer);
+    const ligar = quer && !reduced.matches && !document.hidden;
+    if (ligar && !raf) { resize(); raf = requestAnimationFrame(frame); }
+    else if (!ligar && raf) { cancelAnimationFrame(raf); raf = 0; cx.clearRect(0, 0, W, H); }
+  }
+  document.addEventListener("visibilitychange", fx);
+  addEventListener("resize", () => { if (raf) resize(); });
+
+  /* ---- Controles do painel ---- */
+  function sync() {
+    document.querySelectorAll("[data-k]").forEach(el => {
+      const k = el.dataset.k;
+      if (el.type === "checkbox") el.checked = !!cfg[k];
+      else { el.value = cfg[k] || (el.type === "number" ? "" : 0); const o = document.querySelector('[data-o="' + k + '"]'); if (o) o.textContent = el.value + (el.dataset.u || ""); }
+    });
+  }
+  document.querySelectorAll("[data-k]").forEach(el => {
+    const k = el.dataset.k;
+    if (el.type === "checkbox") {
+      el.onchange = () => { cfg[k] = el.checked; salvar(); aplicar(); if (k === "theme") window.dispatchEvent(new Event("themechange")); sync(); };
+    } else {
+      el.oninput = () => {
+        cfg[k] = Number(el.value) || 0; salvar(); aplicar();
+        const o = document.querySelector('[data-o="' + k + '"]'); if (o) o.textContent = el.value + (el.dataset.u || "");
+      };
+    }
+  });
+
+  function lerImagem(file, maxW) {
+    return new Promise((ok, err) => {
+      const fr = new FileReader(); fr.onerror = err;
+      fr.onload = () => {
+        const im = new Image(); im.onerror = err;
+        im.onload = () => {
+          const k = Math.min(1, maxW / im.width), c = document.createElement("canvas");
+          c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+          c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
+          ok(c.toDataURL("image/jpeg", .82));
+        };
+        im.src = fr.result;
+      };
+      fr.readAsDataURL(file);
+    });
+  }
+  function ligaImagem(inputId, remId, key, maxW, set) {
+    $(inputId).onchange = async e => {
+      const f = e.target.files[0]; if (!f) return;
+      try {
+        const url = await lerImagem(f, maxW); set(url);
+        try { localStorage.setItem(key, url); $("img-msg").textContent = "Imagem aplicada e salva neste navegador."; }
+        catch (_) { $("img-msg").textContent = "Imagem aplicada, mas é grande demais para ficar salva. Use uma menor."; }
+        aplicar();
+      } catch (_) { $("img-msg").textContent = "Não consegui abrir essa imagem."; }
+      e.target.value = "";
+    };
+    $(remId).onclick = () => { set(null); try { localStorage.removeItem(key); } catch (_) {} aplicar(); };
+  }
+  ligaImagem("bg-file", "bg-rem", "pv_bg", 1920, v => { bg = v; });
+  ligaImagem("ban-file", "ban-rem", "pv_banner", 1600, v => { ban = v; });
+
+  $("p-reset").onclick = () => {
+    cfg = Object.assign({}, DEF); bg = ban = null;
+    try { localStorage.removeItem(KEY); localStorage.removeItem("pv_bg"); localStorage.removeItem("pv_banner"); } catch (e) {}
+    sync(); aplicar(); window.dispatchEvent(new Event("themechange"));
+  };
+
+  /* ---- Abrir e fechar painel ---- */
+  const painel = $("panel"), fab = $("fab");
+  function abrir(on, foco) {
+    painel.classList.toggle("open", on); fab.setAttribute("aria-expanded", on);
+    if (on) (foco || $("p-close")).focus(); else fab.focus();
+  }
+  fab.onclick = () => abrir(!painel.classList.contains("open"));
+  $("p-close").onclick = () => abrir(false);
+  $("goal-edit").onclick = () => abrir(true, $("meta-in"));
+  addEventListener("keydown", e => { if (e.key === "Escape" && painel.classList.contains("open")) abrir(false); });
+
+  sync(); aplicar();
+})();
+</script>
+<script>
+/* ============ CONFIGURAÇÃO: cole aqui os dados do seu projeto Supabase ============ */
+const SUPABASE_URL = "https://nwcajgdkphaldbzjxphv.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im53Y2FqZ2RrcGhhbGRiemp4cGh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI0NTI5OTAsImV4cCI6MjEwODAyODk5MH0.mKphmgJHsdAaWOeka7BlcPFfgPIZ-eHWgMp5-Oc7g6s";
+/* ================================================================================== */
+
+const $ = id => document.getElementById(id);
+const brl = n => Number(n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const show = (el, on) => el.classList.toggle("hidden", !on);
+const dia = d => new Date(d).toLocaleDateString("pt-BR");
+
+if (SUPABASE_URL.startsWith("COLE_") || SUPABASE_ANON_KEY.startsWith("COLE_")) {
+  show($("setup"), true);
+} else {
+  start();
+}
+
+function start() {
+  const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  let modoCadastro = false, vendas = [], grafico = null, canal = null;
+
+  function aviso(el, texto, tipo) {
+    el.textContent = texto; el.className = "msg " + tipo; show(el, !!texto);
+  }
+
+  /* ---- Autenticação ---- */
+  function atualizaModo() {
+    $("auth-title").textContent = modoCadastro ? "Criar conta" : "Entrar";
+    $("auth-sub").textContent = modoCadastro ? "Informe e-mail e uma senha." : "Use seu e-mail e senha.";
+    $("auth-btn").textContent = modoCadastro ? "Criar conta" : "Entrar";
+    $("auth-toggle-text").textContent = modoCadastro ? "Já tem conta?" : "Ainda não tem conta?";
+    $("auth-toggle").textContent = modoCadastro ? "Entrar" : "Criar conta";
+    $("senha").autocomplete = modoCadastro ? "new-password" : "current-password";
+    aviso($("auth-msg"), "", "");
+  }
+  $("auth-toggle").onclick = () => { modoCadastro = !modoCadastro; atualizaModo(); };
+
+  let falhas = 0, bloqueadoAte = 0;
+  const senhaForte = p => p.length >= 10 && /[a-z]/.test(p) && /[A-Z]/.test(p) && /\d/.test(p);
+
+  async function enviarAuth() {
+    const agora = Date.now();
+    if (agora < bloqueadoAte) return aviso($("auth-msg"), "Muitas tentativas. Aguarde " + Math.ceil((bloqueadoAte - agora) / 1000) + " s e tente de novo.", "err");
+    const email = $("email").value.trim().slice(0, 254), senha = $("senha").value;
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email) || !senha) return aviso($("auth-msg"), "Informe um e-mail válido e a senha.", "err");
+    if (modoCadastro && !senhaForte(senha)) return aviso($("auth-msg"), "Use uma senha com 10 ou mais caracteres, com letra maiúscula, minúscula e número.", "err");
+    $("auth-btn").disabled = true;
+    const { data, error } = modoCadastro
+      ? await db.auth.signUp({ email, password: senha })
+      : await db.auth.signInWithPassword({ email, password: senha });
+    $("auth-btn").disabled = false;
+    if (error) {
+      falhas++;
+      if (falhas >= 5) { bloqueadoAte = Date.now() + Math.min(300, 15 * 2 ** (falhas - 5)) * 1000; }
+      return aviso($("auth-msg"), modoCadastro ? "Não foi possível criar a conta. Verifique os dados e tente novamente." : "E-mail ou senha incorretos.", "err");
+    }
+    falhas = 0;
+    $("senha").value = "";
+    if (modoCadastro && !data.session) aviso($("auth-msg"), "Se o e-mail for válido, enviamos um link de confirmação.", "ok");
+  }
+  $("auth-btn").onclick = enviarAuth;
+  $("senha").addEventListener("keydown", e => { if (e.key === "Enter") enviarAuth(); });
+  $("logout").onclick = () => db.auth.signOut();
+
+  db.auth.onAuthStateChange((_ev, session) => {
+    if (session) abrirApp(session.user); else fecharApp();
+  });
+  db.auth.getSession().then(({ data }) => { if (!data.session) fecharApp(); });
+
+  let ocioso = null;
+  const zeraOcioso = () => { clearTimeout(ocioso); ocioso = setTimeout(() => db.auth.signOut(), 30 * 60 * 1000); };
+  ["click", "keydown", "touchstart", "mousemove"].forEach(ev => document.addEventListener(ev, zeraOcioso, { passive: true }));
+
+  function fecharApp() {
+    clearTimeout(ocioso);
+    if (canal) { db.removeChannel(canal); canal = null; }
+    vendas = []; show($("app"), false); show($("auth"), true);
+  }
+
+  async function abrirApp(user) {
+    show($("auth"), false); show($("app"), true); zeraOcioso();
+    $("user-email").textContent = user.email;
+    await carregar();
+    if (canal) db.removeChannel(canal);
+    canal = db.channel("vendas-ao-vivo")
+      .on("postgres_changes", { event: "*", schema: "public", table: "sales" }, carregar)
+      .subscribe(status => {
+        const on = status === "SUBSCRIBED";
+        $("live").classList.toggle("on", on);
+        $("live-text").textContent = on ? "Ao vivo" : "Reconectando…";
+      });
+  }
+
+  /* ---- Dados ---- */
+  async function carregar() {
+    const { data, error } = await db.from("sales").select("*").order("created_at", { ascending: false }).limit(5000);
+    if (error) { console.error(error); return; }
+    vendas = data; render();
+  }
+
+  function filtradas() {
+    const dias = Number($("periodo").value);
+    if (!dias) return vendas;
+    const corte = Date.now() - dias * 86400000;
+    return vendas.filter(v => new Date(v.created_at).getTime() >= corte);
+  }
+
+  function render() {
+    const lista = filtradas();
+    const total = lista.reduce((s, v) => s + Number(v.total), 0);
+    const hojeStr = new Date().toDateString();
+    const hoje = vendas.filter(v => new Date(v.created_at).toDateString() === hojeStr).reduce((s, v) => s + Number(v.total), 0);
+    $("k-total").textContent = brl(total);
+    $("k-qtd").textContent = lista.length.toLocaleString("pt-BR");
+    $("k-ticket").textContent = lista.length ? brl(total / lista.length) : brl(0);
+    $("k-hoje").textContent = brl(hoje);
+    const ag = new Date();
+    atualizaMeta(vendas.filter(v => { const d = new Date(v.created_at); return d.getMonth() === ag.getMonth() && d.getFullYear() === ag.getFullYear(); }).reduce((s, v) => s + Number(v.total), 0));
+
+    const tb = $("tbody"); tb.textContent = "";
+    lista.slice(0, 50).forEach(v => {
+      const tr = document.createElement("tr");
+      const cel = (t, cls) => { const td = document.createElement("td"); td.textContent = t; if (cls) td.className = cls; tr.appendChild(td); return td; };
+      cel(dia(v.created_at)); cel(v.customer); cel(v.product);
+      cel(v.quantity, "num"); cel(brl(v.unit_price), "num"); cel(brl(v.total), "num");
+      const td = document.createElement("td"); const b = document.createElement("button");
+      b.className = "del"; b.textContent = "Excluir"; b.onclick = () => excluir(v.id);
+      td.appendChild(b); tr.appendChild(td); tb.appendChild(tr);
+    });
+    show($("empty"), lista.length === 0);
+    desenhaGrafico(lista);
+  }
+
+  function desenhaGrafico(lista) {
+    const porDia = {};
+    lista.forEach(v => { const k = new Date(v.created_at).toISOString().slice(0, 10); porDia[k] = (porDia[k] || 0) + Number(v.total); });
+    const chaves = Object.keys(porDia).sort();
+    const labels = chaves.map(k => k.split("-").reverse().slice(0, 2).join("/"));
+    const valores = chaves.map(k => porDia[k]);
+    const css = getComputedStyle(document.documentElement);
+    const cor = css.getPropertyValue("--accent").trim(), grade = css.getPropertyValue("--line").trim(), txt = css.getPropertyValue("--muted").trim();
+    if (grafico) grafico.destroy();
+    grafico = new Chart($("chart"), {
+      type: "bar",
+      data: { labels, datasets: [{ data: valores, backgroundColor: cor, borderRadius: 4 }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => brl(c.parsed.y) } } },
+        scales: {
+          x: { grid: { display: false }, ticks: { color: txt } },
+          y: { grid: { color: grade }, ticks: { color: txt, callback: v => brl(v) }, beginAtZero: true }
+        }
+      }
+    });
+  }
+
+  $("periodo").onchange = render;
+  window.addEventListener("themechange", () => { if (!$("app").classList.contains("hidden")) render(); });
+
+  /* ---- Ações ---- */
+  $("f-add").onclick = async () => {
+    const customer = $("f-cliente").value.trim(), product = $("f-produto").value.trim();
+    const quantity = parseInt($("f-qtd").value, 10), unit_price = parseFloat($("f-preco").value);
+    if (!customer || !product || !(quantity > 0 && quantity <= 100000) || !(unit_price >= 0 && unit_price <= 10000000) || customer.length > 80 || product.length > 80) return aviso($("f-msg"), "Preencha cliente, produto, quantidade e preço.", "err");
+    $("f-add").disabled = true;
+    const { data: { user } } = await db.auth.getUser();
+    const { error } = await db.from("sales").insert({ user_id: user.id, customer, product, quantity, unit_price });
+    $("f-add").disabled = false;
+    if (error) return aviso($("f-msg"), "Não foi possível salvar: " + error.message, "err");
+    ["f-cliente", "f-produto", "f-preco"].forEach(i => $(i).value = ""); $("f-qtd").value = 1;
+    aviso($("f-msg"), "Venda salva.", "ok"); setTimeout(() => aviso($("f-msg"), "", ""), 2500);
+  };
+
+  async function excluir(id) {
+    if (!confirm("Excluir esta venda?")) return;
+    const { error } = await db.from("sales").delete().eq("id", id);
+    if (error) alert("Não foi possível excluir: " + error.message);
+  }
+
+  $("export").onclick = () => {
+    const lista = filtradas();
+    const esc = s => '"' + String(s).replace(/"/g, '""').replace(/^[=+\-@\t\r]/, "'$&") + '"';
+    const linhas = [["Data", "Cliente", "Produto", "Quantidade", "Preço unitário", "Total"].join(";")]
+      .concat(lista.map(v => [dia(v.created_at), esc(v.customer), esc(v.product), v.quantity, String(v.unit_price).replace(".", ","), String(v.total).replace(".", ",")].join(";")));
+    const blob = new Blob(["\ufeff" + linhas.join("\n")], { type: "text/csv;charset=utf-8" });
+    const a = document.createElement("a"); a.href = URL.createObjectURL(blob); a.download = "vendas.csv"; a.click(); URL.revokeObjectURL(a.href);
+  };
+}
+</script>
+</body>
+</html>
